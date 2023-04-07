@@ -5,49 +5,60 @@
 #include <stdbool.h>
 int main(int argc, char **argv)
 {
-    bool v_flag = false, f_flag = false, same = true; // check if -v for output
-                                                      //       or -f allows to overwrite
-    if (argc != 4)
+    bool v_flag = false, f_flag = false; // check if -v for output
+                                         //       or -f allows to overwrite
+    if (argc < 3)
     {
         printf("Arguments missing! to use, enter after './copy':\n");
         printf("1. File to copy FROM\n \
                 2. File to copy TO\n \
-                3. Flags: -v for output -f to allow overwrite\n");
+                3. Optional Flags: -v for output -f to allow overwrite\n");
         return 1;
     }
-    if (strcmp(argv[3], "-v") == 0)
-        v_flag = true;
-    else
-        f_flag = true;
+    for (size_t j = 0; j < argc; j++)
+    {
+        if (strcmp(argv[j], "-v") == 0)
+            v_flag = true;
+        else if (strcmp(argv[j], "-f") == 0)
+            f_flag = true;
+        else if (j > 2)
+        {
+            printf("Illegal Arguments! to use, enter after './copy':\n");
+            printf("1. File to copy FROM\n \
+                    2. File to copy TO\n \
+                    3. Optional Flags: -v for output -f to allow overwrite\n");
+            return 1; // the input is not -v or -i
+        }
+    }
     FILE *ptr1;
     FILE *ptr2;
     char char_f1;
-    char char_f2;
     ptr1 = fopen(argv[1], "r");
     if (access(argv[2], F_OK) == 0) // file exist
-    {
         if (f_flag != true)
         {
-            printf("target file exist\n");
+            if (v_flag == true)
+                printf("target file exist\n");
+            return 1;
         }
-    }
-    ptr2 = fopen(argv[2], "w+");
 
-    while (feof(ptr1) == 0)
+    ptr2 = fopen(argv[2], "w+");
+    if (ptr1 == NULL || ptr2 == NULL)
     {
-        char_f1 = fgetc(ptr1);
+        if (v_flag == true)
+            printf("general failiure\n");
+        return 1;
+    }
+    while (!feof(ptr1))
+    {
+        if ((char_f1 = fgetc(ptr1)) == 255)
+            break;
         fputc(char_f1, ptr2);
     }
     fclose(ptr1);
     fclose(ptr2);
-    if (v_flag == true)
-        printf("aaa\n");
-    else
-        printf("bbb\n");
 
-    if (same)
-    {
-        return 0;
-    }
-    return 1;
+    if (v_flag == true)
+        printf("success\n");
+    return 0;
 }

@@ -4,13 +4,18 @@
 #include <stdbool.h>
 int main(int argc, char **argv)
 {
-    bool v = false, i = false, same = true; // check if -v or -t
-    if (argc != 4)
+    bool v = false, i = false, same = true; // check if -v or -i
+    if (argc < 3)
         return -1;
-    if (strcmp(argv[3], "-v") == 0)
-        v = true;
-    else
-        i = true;
+    for (size_t j = 0; j < argc; j++)
+    {
+        if (strcmp(argv[j], "-v") == 0)
+            v = true;
+        else if (strcmp(argv[j], "-i") == 0)
+            i = true;
+        else if (j > 2)
+            return -1; // the input is not -v or -i
+    }
     FILE *ptr1;
     FILE *ptr2;
     char char_f1;
@@ -19,7 +24,7 @@ int main(int argc, char **argv)
     ptr2 = fopen(argv[2], "r");
     if (ptr1 == NULL || ptr2 == NULL)
     {
-        printf("couldnt find the file! \n");
+        printf("couldnt open the file! try again!\n");
         return -1;
     }
     while (feof(ptr1) == 0 || feof(ptr2) == 0)
@@ -36,8 +41,6 @@ int main(int argc, char **argv)
             if (char_f1 != char_f2)
                 same = false;
         }
-        // printf("%c\n", char_f1);
-        // printf("%c\n", char_f2);
     }
     if ((!ptr1 && ptr2) || (ptr1 && !ptr2))
     {
