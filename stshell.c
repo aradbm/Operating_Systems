@@ -9,18 +9,21 @@
 #include <signal.h>
 
 int child_pid;
-#define MAX_PIPES 5 // program can hold up to 5 pipes!
+#define MAX_PIPES 10 // program can hold up to 10 pipes!
+
 void sigint_handler(int signum)
 {
-	killpg(child_pid, SIGINT);
+	printf("\nCtrl+C pressed. Please enter a command.\n");
+	fflush(stdout);
 }
+
 int main()
 {
 	int n_pipes;
 	char command[1024];
 	char **commands = NULL;
 	char *token;
-	char temp_output[2048];
+	char temp_output[4096] = {0};
 	printf("Hello to my custom shell! Enter a command: \n");
 	while (1)
 	{
@@ -67,19 +70,53 @@ int main()
 			if (pids[i] == 0)
 			{
 				// Child process
-				for (size_t j = 0; j < n_pipes + 1; j++)
+				if (i == 0) // first child process
 				{
-					if (i != j)
-						close(pipes[j][0]);
-					if (i + 1 != j)
-						close(pipes[j][1]);
+					// Set stdout to the write end of the first pipe
+					dup2(pipes[i][1], STDOUT_FILENO);
+
+					// Close the read end of the first pipe
+					close(pipes[i][0]);
 				}
-				// execute commands[i] with knowing the temp_output in mind!
-				return 0;
+				else if (i == n_pipes)
+				{
+					// Parent process
+					signal(SIGINT, sigint_handler);
+
+					for (size_t j = 0; j < n_pipes + 1; j++)
+					{
+						close(pipes[j][1]);
+					}
+
+					// read from the read end of the pipe
+					int bytes_read = read(pipes[n_pipes][0], temp_output, sizeof(temp_output));
+					char *temp = malloc(sizeof(char) * (bytes_read + 1));
+					strncpy(temp, temp_output, bytes_read);
+					temp[bytes_read] = '\0';
+					strcpy(temp_output, temp);
+					free(temp);
+
+					// Clean the buffer
+					while (read(pipes[n_pipes][0], temp_output, sizeof(temp_output)) > 0)
+					{
+						// do nothing
+					}
+
+					// close the read end of the pipe
+					close(pipes[n_pipes][0]);
+
+					// print the output
+					printf("%s", temp_output);
+
+					// wait for the child processes to finish
+					for (size_t j = 0; j < n_pipes; j++)
+					{
+						waitpid(pids[j], NULL, 0);
+					}
+					free(commands);
+					free(token);
+				}
 			}
 		}
-		for (i = 0; i < n_pipes; i++)
-			wait(NULL);
 	}
-	return 0;
 }
