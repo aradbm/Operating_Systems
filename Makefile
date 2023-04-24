@@ -37,4 +37,4 @@ codecB.so: codecB.o codec.h
 
 .PHONY:clean
 clean: 
-	rm -f *.o *.so *.a encode decode copy cmp codecA codecB myshell stshell fPIC
+	rm -f *.o *.so *.a encode decode copy cmp codecA codecB myshell stshell -fPIC

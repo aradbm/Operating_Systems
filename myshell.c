@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
         getline(&buffer, &bufsize, stdin);
         buffer[strlen(buffer) - 1] = 0;
         if (strcmp(buffer, "exit") == 0)
-			return 0;
+            return 0;
 
         char mybuffcopy[1024] = {0};
 
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 
             if (strstr(mystrings[i], "|") != NULL)
             {
-                seenpipe ++;
+                seenpipe++;
                 seensomthing++;
                 // spotpipe=i;
             }
@@ -160,12 +160,10 @@ int main(int argc, char *argv[])
                 if (pipefork == 0)
                 {
 
-                   
                     dup2(fd1[1], 1);
                     close(fd1[0]);
                     close(fd1[1]);
                     execl("/bin/sh", "sh", "-c", piped[0], (char *)NULL);
-                  
                 }
                 else
                 {
@@ -205,7 +203,7 @@ int main(int argc, char *argv[])
                     idx++;
                     token = strtok(NULL, "|");
                 }
-                int fd = open(bigger1[1], O_WRONLY | O_CREAT , 00700);
+                int fd = open(bigger1[1], O_WRONLY | O_CREAT, 00700);
 
                 int bigfork1 = fork();
                 if (bigfork1 == -1)
@@ -225,7 +223,7 @@ int main(int argc, char *argv[])
 
             else if (seendoublebigger > 0)
             {
-                               char *bigger1[2] = {0};
+                char *bigger1[2] = {0};
                 char mybuffcopybigger1[1024];
                 memset(mybuffcopybigger1, '\0', strlen(mybuffcopybigger1));
                 bzero(bigger1, sizeof(bigger1));
@@ -256,10 +254,8 @@ int main(int argc, char *argv[])
                     wait(NULL);
                 }
             }
-
         }
-        signal(SIGINT,signal_handler);
+        signal(SIGINT, signal_handler);
     }
     return 0;
 }
-

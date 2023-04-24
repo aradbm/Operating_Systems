@@ -7,18 +7,84 @@
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
-
-int child_pid;
-#define MAX_PIPES 10 // program can hold up to 10 pipes!
-
+int child_pid = 0;
 void sigint_handler(int signum)
 {
-	printf("\nCtrl+C pressed. Please enter a command.\n");
-	fflush(stdout);
+	if (child_pid != 0)
+	{
+		kill(child_pid, signum);
+	}
+	else
+	{
+		printf("\nCtrl+C pressed. Please enter a command or write exit to get out. \n$ ");
+		fflush(stdout);
+	}
+}
+static void pipeline(char ***commands)
+{
+	int num_commands = 0;
+	while (commands[num_commands] != NULL)
+	{
+		num_commands++;
+	}
+
+	int fd[2];
+	int in = 0;
+	pid_t pid;
+	for (int i = 0; i < num_commands; i++)
+	{
+		pipe(fd); // create pipe for output from current command to next
+
+		pid = fork();
+		if (pid < 0)
+		{
+			perror("fork");
+			exit(EXIT_FAILURE);
+		}
+		else if (pid == 0)
+		{
+			// child process
+			if (i < num_commands - 1)
+			{
+				// if not last command, redirect stdout to pipe write end
+				if (dup2(fd[1], STDOUT_FILENO) < 0)
+				{
+					perror("dup2");
+					exit(EXIT_FAILURE);
+				}
+			}
+			if (i > 0)
+			{
+				// if not first command, redirect stdin to pipe read end
+				if (dup2(in, STDIN_FILENO) < 0)
+				{
+					perror("dup2");
+					exit(EXIT_FAILURE);
+				}
+			}
+			// close all pipe file descriptors (not needed in child)
+			close(fd[0]);
+			close(fd[1]);
+			if (execvp(commands[i][0], commands[i]) < 0)
+			{
+				perror("execvp");
+				exit(EXIT_FAILURE);
+			}
+		}
+		else
+		{
+			// parent process
+			waitpid(pid, NULL, 0);
+			// close write end of pipe (not needed in parent)
+			close(fd[1]);
+			in = fd[0]; // set input for next command to read end of current pipe
+		}
+	}
 }
 
 int main()
 {
+	signal(SIGINT, sigint_handler);
 	int n_pipes;
 	char command[1024];
 	char **commands = NULL;
@@ -46,77 +112,31 @@ int main()
 			token = strtok(NULL, "|");
 			n_pipes++;
 		}
-		// now i have commands[i] with commands to execute
-		// i need to open pipes in the number of [i+1][i]
-		int pipes[MAX_PIPES + 1][2];
-		int pids[MAX_PIPES];
-		int i;
-		for (i = 0; i < n_pipes + 1; i++) // Creating pipes for comunication:
+		char ***args = malloc(n_pipes * sizeof(char **));
+		for (int i = 0; i < n_pipes; i++)
 		{
-			if (pipe(pipes[i]) == -1)
+			args[i] = malloc(sizeof(char *));
+			token = strtok(commands[i], " ");
+			int j = 0;
+			while (token != NULL)
 			{
-				printf("Error 1\n");
-				return 1;
+				args[i] = realloc(args[i], (j + 1) * sizeof(char *));
+				args[i][j] = token;
+				token = strtok(NULL, " ");
+				j++;
 			}
+			args[i] = realloc(args[i], (j + 1) * sizeof(char *));
+			args[i][j] = NULL;
 		}
-		for (i = 0; i < n_pipes; i++) // Creating the child proccesses to execute commands
+		args = realloc(args, (n_pipes + 1) * sizeof(char **));
+		args[n_pipes] = NULL;
+
+		pipeline(args);
+		for (int i = 0; i < n_pipes; i++)
 		{
-			pids[i] = fork();
-			if (pids[i] == -1)
-			{
-				printf("Error 2\n");
-				return 1;
-			}
-			if (pids[i] == 0)
-			{
-				// Child process
-				if (i == 0) // first child process
-				{
-					// Set stdout to the write end of the first pipe
-					dup2(pipes[i][1], STDOUT_FILENO);
-
-					// Close the read end of the first pipe
-					close(pipes[i][0]);
-				}
-				else if (i == n_pipes)
-				{
-					// Parent process
-					signal(SIGINT, sigint_handler);
-
-					for (size_t j = 0; j < n_pipes + 1; j++)
-					{
-						close(pipes[j][1]);
-					}
-
-					// read from the read end of the pipe
-					int bytes_read = read(pipes[n_pipes][0], temp_output, sizeof(temp_output));
-					char *temp = malloc(sizeof(char) * (bytes_read + 1));
-					strncpy(temp, temp_output, bytes_read);
-					temp[bytes_read] = '\0';
-					strcpy(temp_output, temp);
-					free(temp);
-
-					// Clean the buffer
-					while (read(pipes[n_pipes][0], temp_output, sizeof(temp_output)) > 0)
-					{
-						// do nothing
-					}
-
-					// close the read end of the pipe
-					close(pipes[n_pipes][0]);
-
-					// print the output
-					printf("%s", temp_output);
-
-					// wait for the child processes to finish
-					for (size_t j = 0; j < n_pipes; j++)
-					{
-						waitpid(pids[j], NULL, 0);
-					}
-					free(commands);
-					free(token);
-				}
-			}
+			free(args[i]);
 		}
+		free(args);
+		free(commands);
 	}
 }
