@@ -65,6 +65,49 @@ static void pipeline(char ***commands)
 			// close all pipe file descriptors (not needed in child)
 			close(fd[0]);
 			close(fd[1]);
+			// if there is > in command, redirect stdout to file
+			for (int j = 0; commands[i][j] != NULL; j++)
+			{
+				if (strcmp(commands[i][j], ">") == 0)
+				{
+					int fd_out = open(commands[i][j + 1], O_WRONLY | O_CREAT | O_TRUNC, 0666);
+					if (fd_out < 0)
+					{
+						perror("open");
+						exit(EXIT_FAILURE);
+					}
+					if (dup2(fd_out, STDOUT_FILENO) < 0)
+					{
+						perror("dup2");
+						exit(EXIT_FAILURE);
+					}
+					close(fd_out);
+					commands[i][j] = NULL;
+					break;
+				}
+			}
+			// if there is >> in command, redirect stdout to file
+			for (int j = 0; commands[i][j] != NULL; j++)
+			{
+				if (strcmp(commands[i][j], ">>") == 0)
+				{
+					int fd_out = open(commands[i][j + 1], O_WRONLY | O_CREAT | O_APPEND, 0666);
+					if (fd_out < 0)
+					{
+						perror("open");
+						exit(EXIT_FAILURE);
+					}
+					if (dup2(fd_out, STDOUT_FILENO) < 0)
+					{
+						perror("dup2");
+						exit(EXIT_FAILURE);
+					}
+					close(fd_out);
+					commands[i][j] = NULL;
+					break;
+				}
+			}
+
 			if (execvp(commands[i][0], commands[i]) < 0)
 			{
 				perror("execvp");
