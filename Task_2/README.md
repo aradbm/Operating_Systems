@@ -8,4 +8,4 @@ run make in a terminal, open in this folder. after the "make" command you will h
    where FLAG can be -v or -f
 3. Part C:
    To use the stshell program shell, run it simply with ./stshell.
-   The program supporsts up to 10 pipes at the same time.
+   The program supporsts piping and > or >> operators.
