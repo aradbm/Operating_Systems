@@ -3,7 +3,7 @@ CFLAGS=-I.
 FLAG=-Wall -g
 DEPS = codec.h
 PWD = $(shell pwd)
-all: encode decode codecA codecB cmp copy stshell myshell
+all: encode decode codecA codecB cmp copy stshell
 
 codecA: codecA.so
 codecB: codecB.so
@@ -23,8 +23,6 @@ copy : copy.c
 	$(CC) $(FLAGS) -o copy copy.c
 stshell: stshell.c
 	$(CC) $(FLAGS) -o stshell stshell.c
-myshell: myshell.c
-	$(CC) $(FLAGS) -o myshell myshell.c
 
 codecA.so: codecA.o codec.h
 	$(CC) codecA.c -c -o -fPIC 
@@ -37,4 +35,4 @@ codecB.so: codecB.o codec.h
 
 .PHONY:clean
 clean: 
-	rm -f *.o *.so *.a encode decode copy cmp codecA codecB myshell stshell
+	rm -f *.o *.so *.a encode decode copy cmp codecA codecB stshell

@@ -2,7 +2,6 @@ CC= gcc
 CFLAGS=-I.
 FLAG=-Wall -g
 
-
 all: main
 
 main: main.o
@@ -11,7 +10,6 @@ main: main.o
 run: main
 	./main
 
-
 .PHONY:clean
 clean: 
-	rm -f *.o main
+	rm -f *.o main 12347 myrandomfile.txt newfile.txt mysharedfile.txt threadnewfile.txt

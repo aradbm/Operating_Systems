@@ -25,7 +25,6 @@
 #include <ctype.h>
 #include <sys/mman.h>
 #include <fcntl.h>
-#include <pthread.h> // threads
 #include <sys/stat.h>
 #include <sys/shm.h> // shared memory
 #include <sys/ipc.h>
@@ -58,87 +57,6 @@ void checksum(char *buff, long long *sum, int bufflen)
             break;
         }
     }
-}
-
-void *threadfunc(void *sum)
-{
-
-    int fd = open("myrandomfile.txt", O_RDONLY);
-    int n;
-    char buffer[1000000];
-    while (n = read(fd, buffer, sizeof buffer), n > 0)
-    {
-        checksum(buffer, sum, strlen(buffer));
-        memset(buffer, '\0', strlen(buffer));
-    }
-    return NULL;
-}
-
-void *threadfunc1(void *buff)
-{
-    pthread_mutex_t count_mutex;
-    pthread_mutex_trylock(&count_mutex);
-
-    key_t key;
-    key = ftok(SHAREDFILENAME, 0);
-    if (key == -1)
-    {
-        printf("error with key\n");
-        return NULL;
-    }
-    int sharedBlockID = shmget(key, SIZESM, 0644 | IPC_CREAT);
-    if (sharedBlockID == -1)
-    {
-        printf("error getting sharedblockid\n");
-        return NULL;
-    }
-
-    char *result1;
-    result1 = shmat(sharedBlockID, NULL, 0);
-    if (result1 == NULL)
-    {
-        printf("error with result\n");
-        return NULL;
-    }
-
-    memset(result1, '\0', SIZESM);
-    // printf("made share memory\n");
-    memcpy(result1, buff, strlen(buff));
-    // printf("finished coying to shard memory\n");
-    pthread_mutex_unlock(&count_mutex);
-    return NULL;
-}
-
-void *threadfunc2(void *buff)
-{
-    pthread_mutex_t count_mutex;
-    pthread_mutex_trylock(&count_mutex);
-
-    key_t key;
-    key = ftok(SHAREDFILENAME, 0);
-    if (key == -1)
-    {
-        printf("error with key\n");
-        return NULL;
-    }
-    int sharedBlockID = shmget(key, SIZESM, 0644 | IPC_CREAT);
-    if (sharedBlockID == -1)
-    {
-        printf("error getting sharedblockid\n");
-        return NULL;
-    }
-    char *result1;
-    result1 = shmat(sharedBlockID, NULL, 0);
-    if (result1 == NULL)
-    {
-        printf("error with result\n");
-        return NULL;
-    }
-
-    int fdest = open("threadnewfile.txt", O_WRONLY | O_CREAT, 00700);
-    write(fdest, result1, SIZESM);
-    pthread_mutex_unlock(&count_mutex);
-    return NULL;
 }
 
 int createRandomfile()
@@ -567,7 +485,6 @@ void UDPclient(char *filename)
 
 int main()
 {
-
     createRandomfile();
     // printf("created random file\n");
     int fd = open("myrandomfile.txt", O_RDONLY);
@@ -590,8 +507,7 @@ int main()
         checksum(buffer, check, n);
         memset(buffer, '\0', strlen(buffer));
     }
-    // printf("checksum calc2 = %lld\n",checksum1);
-
+    // TCP server and client
     {
         // printf("~~~ START TCP ~~~\n");
         clock_t start, end;
@@ -639,7 +555,7 @@ int main()
         }
         // printf("~~~ END TCP ~~~\n\n");
     }
-
+    // uds tcp
     {
         // printf("~~~~ START UDS-TCP ~~~\n");
         clock_t start, end;
@@ -685,7 +601,7 @@ int main()
         }
         // printf("~~~ END UDS-TCP ~~~\n\n");
     }
-
+    // uds udp
     {
         // printf("~~~ START UDS-UDP ~~~\n");
         clock_t start, end;
@@ -733,7 +649,7 @@ int main()
         unlink(SERVER_SOCK_FILE);
         // printf("~~~ END UDS-UDP ~~~\n\n");
     }
-
+    // mmap:
     {
 
         // printf("~~~ START MMAP ~~~\n");
@@ -791,7 +707,7 @@ int main()
         }
         // printf("~~~ END MMAP ~~~\n\n");
     }
-
+    // pipes:
     {
         // printf("~~~ START PIPE ~~~\n");
         int fdone[2];
@@ -873,56 +789,7 @@ int main()
         // printf ("checksum before - checksum atfer = %lld \n",checksum1-checksum2);
         // printf("~~~ END PIPE ~~~\n\n");
     }
-
-    {
-
-        int fdest = open(SHAREDFILENAME, O_WRONLY | O_CREAT | O_TRUNC, 00700);
-        close(fdest);
-        fdest = open("threadnewfile.txt", O_WRONLY | O_CREAT | O_TRUNC, 00700);
-        close(fdest);
-
-        pthread_t thread1, thread2;
-
-        clock_t start, end;
-        start = clock();
-        int nread;
-        char buff[SIZESM];
-        // int num=1;
-        int myfd = open("myrandomfile.txt", O_RDONLY);
-        while (nread = read(myfd, buff, sizeof buff), nread > 0)
-        {
-            // printf("%d\n",num*SIZESM);
-            // num++;
-            // printf("nread=%d\n",nread);
-            pthread_create(&thread1, NULL, threadfunc1, (void *)buff);
-            sleep(2);
-            pthread_create(&thread2, NULL, threadfunc2, (void *)buff);
-            sleep(2);
-        }
-
-        end = clock();
-
-        int fd2 = open("threadnewfile.txt", O_RDONLY);
-        long long checksum2 = 0;
-        long long *check2 = &checksum2;
-        memset(buffer, '\0', strlen(buffer));
-        while (n = read(fd2, buffer, sizeof buffer), n > 0)
-        {
-            checksum(buffer, check2, strlen(buffer));
-            memset(buffer, '\0', strlen(buffer));
-        }
-        // printf("checksum %lld\n",checksum2);
-        if (checksum1 - checksum2 == 0)
-        {
-            double cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-            printf("it took THREAD %f seconds to run\n", cpu_time_used);
-        }
-        else
-        {
-            printf("THREAD %d\n", -1);
-        }
-    }
-
+    // Udp server and client
     {
         // printf("~~~ START UDP ~~~\n");
 
@@ -969,6 +836,5 @@ int main()
         }
         // printf("~~~ END UDP ~~~\n\n");
     }
-
     return 0;
 }
