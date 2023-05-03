@@ -154,7 +154,15 @@ void stnc(int argc, char *argv[])
         }
         else
         {
-            if (strcmp(comm_type, "mmap") == 0)
+            if (strcmp(comm_type, "tcp") == 0)
+            {
+                run_server_and_client(1);
+            }
+            else if (strcmp(comm_type, "udp") == 0)
+            {
+                run_server_and_client(2);
+            }
+            else if (strcmp(comm_type, "mmap") == 0)
             {
                 run_server_and_client(3);
             }
@@ -170,17 +178,8 @@ void stnc(int argc, char *argv[])
             {
                 run_server_and_client(6);
             }
-            else if (strcmp(comm_type, "udp") == 0)
-            {
-                run_server_and_client(2);
-            }
-            else if (strcmp(comm_type, "tcp") == 0)
-            {
-                run_server_and_client(1);
-            }
             else
             {
-                // error
                 printf("Error: unknown communication type\n");
                 exit(EXIT_FAILURE);
             }
