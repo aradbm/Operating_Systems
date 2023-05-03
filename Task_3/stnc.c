@@ -1,21 +1,14 @@
-
 #include "stnc.h"
 void checksum(char *buff, long long *sum, int bufflen)
 {
     for (int i = 0; i < bufflen + 1; i++)
     {
         if (isalpha(buff[i]))
-        {
             *sum += buff[i];
-        }
         else if (buff[i] == '0')
-        {
             break;
-        }
         else if (buff[i] == '\0')
-        {
             break;
-        }
     }
 }
 int createRandomfile()
@@ -24,16 +17,11 @@ int createRandomfile()
     char buf[] = {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"};
     fd = open("myrandomfile.txt", O_WRONLY | O_CREAT | O_TRUNC, 00700);
     for (int i = 0; i < 250000; i++)
-    {
         write(fd, buf, strlen(buf));
-    }
     for (int i = 0; i < 5; i++)
-    {
         write(fd, "0", 1);
-    }
     return 0;
 }
-
 void error(const char *msg)
 {
     perror(msg);
@@ -84,11 +72,11 @@ void stnc(int argc, char *argv[])
     // print 1 line sammary of the command line arguments
     if (quiet_mode == 0)
     {
-        printf("client_mode = %d\n", client_mode);
-        printf("perform_test = %d\n", perform_test);
-        printf("comm_type = %s\n", comm_type);
-        printf("comm_param = %s\n", comm_param);
-        printf("ip = %s\n", ip);
+        printf("client_mode = %d, ", client_mode);
+        printf("perform_test = %d, ", perform_test);
+        printf("comm_type = %s, ", comm_type);
+        printf("comm_param = %s, ", comm_param);
+        printf("ip = %s, ", ip);
         printf("port = %d\n", port);
     }
 
