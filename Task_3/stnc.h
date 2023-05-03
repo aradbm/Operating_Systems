@@ -39,6 +39,4 @@
 #define SERVER_SOCK_FILE "ssocket"
 
 #define SIZESM 5000000
-// #include "src/server.h"
-// #include "src/client.h"
 #endif // STNC
