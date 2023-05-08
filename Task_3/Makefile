@@ -1,10 +1,14 @@
 CC= gcc
 FLAG=-Wall -g
 
-all: stnc runs runc
+all: stnc
 
 stnc: stnc.o
 	$(CC) -o stnc stnc.c $(FLAG)
+client: client.o
+	$(CC) -o client client.c $(FLAG)
+server: server.o
+	$(CC) -o server server.c $(FLAG)
 
 # runs: stnc
 # 	./stnc -s 6000 -p tcp IPV4
@@ -18,4 +22,4 @@ runc:
 
 .PHONY:clean
 clean: 
-	rm -f *.o stnc *.txt
+	rm -f *.o stnc *.txt server client
