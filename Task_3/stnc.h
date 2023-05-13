@@ -30,7 +30,6 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 
-#define PORT "77777"
 #define PORTUDS1 "12347"
 #define SHAREDFILENAME "mysharedfile.txt"
 #define BUFFER_SIZE_PIPE 1024
@@ -39,4 +38,15 @@
 #define SERVER_SOCK_FILE "ssocket"
 
 #define SIZESM 5000000
+
+void run_server_and_client(int x);
+void TCPclient(char *filename);
+void TCPserver(char *filename);
+void UDPclient(char *filename);
+void UDPserver(char *filename);
+void UDStcpServer(char *filename);
+void UDStcpClient(char *filename);
+void UDSdgramServer(char *filename);
+void UDSdgramClient(char *filename);
+
 #endif // STNC

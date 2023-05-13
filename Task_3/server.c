@@ -8,8 +8,11 @@
 #include <string.h>
 #include <sys/time.h>
 #include <poll.h>
+#include <stdlib.h>
+
 #define SIZE 1024
 #define MAX_CLIENTS 10
+
 int creat_socket(int port, const char *server_ip)
 {
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -21,26 +24,24 @@ int creat_socket(int port, const char *server_ip)
     if (inet_aton(server_ip, &addr.sin_addr) == 0)
     {
         perror("inet_aton");
-        exit(1);
     }
 
     int bindResult = bind(server_socket, (struct sockaddr *)&addr, sizeof(addr));
     if (bindResult == -1)
     {
         perror("bindResult");
-        exit(1);
     }
 
     int listenResult = listen(server_socket, 5);
     if (listenResult == -1)
     {
         perror("listenResult");
-        exit(1);
     }
 
     printf("server start\n");
     return server_socket;
 }
+
 int wait_client(int server_socket)
 {
     struct pollfd pollfds[MAX_CLIENTS + 1];
@@ -50,14 +51,13 @@ int wait_client(int server_socket)
 
     while (1)
     {
-        // printf("useClient => %d\n", useClient);
         int pollResult = poll(pollfds, useClient + 1, 5000);
         if (pollResult > 0)
         {
             if (pollfds[0].revents & POLLIN)
             {
                 struct sockaddr_in cliaddr;
-                int addrlen = sizeof(cliaddr);
+                socklen_t addrlen = sizeof(cliaddr);
                 int client_socket = accept(server_socket, (struct sockaddr *)&cliaddr, &addrlen);
                 printf("accept success %s\n", inet_ntoa(cliaddr.sin_addr));
                 for (int i = 1; i < MAX_CLIENTS; i++)
@@ -94,9 +94,21 @@ int wait_client(int server_socket)
                     }
                     else
                     {
-
                         buf[bufSize] = '\0';
                         printf("From client: %s\n", buf);
+
+                        // Relay the message to all connected clients
+                        for (int j = 1; j < MAX_CLIENTS; j++)
+                        {
+                            if (pollfds[j].fd > 0 && pollfds[j].fd != pollfds[i].fd)
+                            {
+                                ssize_t num_bytes_sent = write(pollfds[j].fd, buf, strlen(buf));
+                                if (num_bytes_sent == -1)
+                                {
+                                    perror("write");
+                                }
+                            }
+                        }
                     }
                 }
             }

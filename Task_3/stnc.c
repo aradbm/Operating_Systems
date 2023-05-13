@@ -14,7 +14,7 @@ void checksum(char *buff, long long *sum, int bufflen)
 int createRandomfile()
 {
     int fd;
-    char buf[] = {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"};
+    char buf[] = {"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n "};
     fd = open("myrandomfile.txt", O_WRONLY | O_CREAT | O_TRUNC, 00700);
     for (int i = 0; i < 250000; i++)
         write(fd, buf, strlen(buf));
@@ -27,20 +27,20 @@ void error(const char *msg)
     perror(msg);
     exit(1);
 }
+// global variables
+int opt;
+int client_mode = 0;
+int perform_test = 0;
+int quiet_mode = 0;
+char *ip = NULL;
+int port = 0;
+char *port_str = NULL;
+char *comm_type = NULL;
+char *comm_param = NULL;
+
 // Main function
 void stnc(int argc, char *argv[])
 {
-    int opt;
-    int client_mode = 0;
-    int perform_test = 0;
-    int quiet_mode = 0;
-
-    char *comm_type = NULL;
-    char *comm_param = NULL;
-
-    char *ip = NULL;
-    int port = 0;
-
     while ((opt = getopt(argc, argv, "c:s:p:q")) != -1)
     {
         switch (opt)
@@ -50,7 +50,8 @@ void stnc(int argc, char *argv[])
             // optarg: pointer to the start of the option argument
             ip = optarg;
             // optind: index of the next element to be processed in argv
-            port = atoi(argv[optind]);
+            port_str = argv[optind];
+            port = atoi(port_str);
             break;
         case 's':
             client_mode = 0;
@@ -180,6 +181,7 @@ int main(int argc, char *argv[])
     stnc(argc, argv);
     return 0;
 }
+
 void run_server_and_client(int x)
 {
     createRandomfile();
@@ -581,7 +583,7 @@ void TCPserver(char *filename)
         error("ERROR opening socket");
     }
     bzero((char *)&serv_addr, sizeof(serv_addr));
-    portno = atoi(PORT);
+    portno = (port);
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(portno);
@@ -635,7 +637,7 @@ void TCPclient(char *filename)
     struct sockaddr_in serv_addr;
     struct hostent *server;
 
-    portno = atoi(PORT);
+    portno = (port);
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
     {
@@ -778,6 +780,7 @@ void UDSdgramServer(char *filename)
 
     if ((fd = socket(PF_UNIX, SOCK_DGRAM, 0)) < 0)
     {
+        printf("error in uds dgram server - opening sockets\n");
         perror("socket");
         ok = 0;
     }
@@ -894,7 +897,7 @@ void UDPserver(char *filename)
 
         /* just use the first address returned in the structure */
 
-        sin6.sin6_port = htons(atoi(PORT));
+        sin6.sin6_port = htons((port));
         sin6.sin6_family = AF_INET6;
         sin6.sin6_addr = in6addr_any;
 
@@ -955,7 +958,7 @@ void UDPclient(char *filename)
         sainfo.ai_family = PF_INET6;
         sainfo.ai_socktype = SOCK_DGRAM;
         sainfo.ai_protocol = IPPROTO_UDP;
-        status = getaddrinfo("ip6-localhost", PORT, &sainfo, &psinfo);
+        status = getaddrinfo("ip6-localhost", port_str, &sainfo, &psinfo);
         status = sendto(sock, buffer, nread, 0, (struct sockaddr *)psinfo->ai_addr, sin6len);
 
         bzero(buffer, sizeof(buffer));

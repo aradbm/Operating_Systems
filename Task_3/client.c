@@ -4,10 +4,9 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
+#include <poll.h>
 
-#define PORT 8081
 #define SIZE 1024
-
 int main(int argc, char *argv[])
 {
     if (argc < 3)
@@ -39,36 +38,72 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    int server_socket = connect(client_socket, (struct sockaddr *)&addr, sizeof(addr)); // 连接服务器
+    int connect_status = connect(client_socket, (struct sockaddr *)&addr, sizeof(addr));
 
-    if (server_socket == -1)
+    if (connect_status == -1)
     {
         perror("connect");
         exit(1);
     }
 
-    printf("Connect result ==> %d\n", server_socket);
+    printf("Connect status ==> %d\n", connect_status);
 
-    char buf[SIZE] = {0};
+    struct pollfd pollfds[2];
+    pollfds[0].fd = STDIN_FILENO;
+    pollfds[0].events = POLLIN | POLLPRI;
+    pollfds[1].fd = client_socket;
+    pollfds[1].events = POLLIN | POLLPRI;
 
     while (1)
     {
-        printf("Send to server：");
-        scanf("%s", buf);
-        ssize_t num_bytes_sent = write(client_socket, buf, strlen(buf));
-
-        if (num_bytes_sent == -1)
+        int pollResult = poll(pollfds, 2, -1);
+        if (pollResult > 0)
         {
-            perror("write");
-        }
+            if (pollfds[0].revents & POLLIN)
+            {
+                char buf_stdin[SIZE];
+                ssize_t num_bytes_read = read(STDIN_FILENO, buf_stdin, SIZE - 1);
+                if (num_bytes_read > 0)
+                {
+                    buf_stdin[num_bytes_read] = '\0';
+                    ssize_t num_bytes_sent = write(client_socket, buf_stdin, strlen(buf_stdin));
 
-        printf("\n");
-        if (strncmp(buf, "end", 3) == 0)
-        {
-            break;
+                    if (num_bytes_sent == -1)
+                    {
+                        perror("write");
+                    }
+
+                    if (strncmp(buf_stdin, "end", 3) == 0)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (pollfds[1].revents & POLLIN)
+            {
+                char buf_socket[SIZE];
+                ssize_t num_bytes_received = read(client_socket, buf_socket, SIZE - 1);
+                if (num_bytes_received > 0)
+                {
+                    buf_socket[num_bytes_received] = '\0';
+                    printf("From server: %s\n", buf_socket);
+                }
+                else if (num_bytes_received == 0)
+                {
+                    printf("Server closed the connection\n");
+                    break;
+                }
+                else
+                {
+                    perror("read");
+                    break;
+                }
+            }
         }
     }
-    close(server_socket);
+
+    close(client_socket);
 
     return 0;
 }
