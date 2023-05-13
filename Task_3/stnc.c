@@ -27,20 +27,21 @@ void error(const char *msg)
     perror(msg);
     exit(1);
 }
+// global vars
+int opt;
+int client_mode = 0;
+int perform_test = 0;
+int quiet_mode = 0;
+
+char *comm_type = NULL;
+char *comm_param = NULL;
+
+char *ip = NULL;
+int port = 0;
+char *port_str = NULL;
 // Main function
 void stnc(int argc, char *argv[])
 {
-    int opt;
-    int client_mode = 0;
-    int perform_test = 0;
-    int quiet_mode = 0;
-
-    char *comm_type = NULL;
-    char *comm_param = NULL;
-
-    char *ip = NULL;
-    int port = 0;
-    char *port_str = NULL;
 
     while ((opt = getopt(argc, argv, "c:s:p:q")) != -1)
     {
