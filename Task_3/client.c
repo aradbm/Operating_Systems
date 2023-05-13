@@ -1,109 +1,111 @@
-#include <sys/socket.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
 #include <arpa/inet.h>
+#include <errno.h>
+#include <netinet/in.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <poll.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#define SIZE 1024
+#define BUFFER_SIZE 1024
+
+void handle_server(int server_socket);
+
 int main(int argc, char *argv[])
 {
-    if (argc < 3)
+    if (argc != 3)
     {
-        printf("Usage: %s <host> <port>\n", argv[0]);
-        exit(1);
+        printf("Usage: %s IP PORT\n", argv[0]);
+        exit(EXIT_FAILURE);
     }
 
-    char *hostArgv = argv[1];
-    char *portArgv = argv[2];
+    const char *ip = argv[1];
+    int port = atoi(argv[2]);
 
-    int port = atoi(portArgv);
+    int server_socket;
+    struct sockaddr_in server_addr;
 
-    int client_socket = socket(AF_INET, SOCK_STREAM, 0);
-
-    if (client_socket == -1)
+    server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_socket < 0)
     {
         perror("socket");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
-    struct sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(port);
 
-    if (inet_aton(hostArgv, &(addr.sin_addr)) == 0)
+    if (inet_pton(AF_INET, ip, &server_addr.sin_addr) <= 0)
     {
-        perror("inet_aton");
-        exit(1);
+        perror("inet_pton");
+        exit(EXIT_FAILURE);
     }
 
-    int connect_status = connect(client_socket, (struct sockaddr *)&addr, sizeof(addr));
-
-    if (connect_status == -1)
+    if (connect(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
         perror("connect");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
-    printf("Connect status ==> %d\n", connect_status);
+    printf("Connected to server %s:%d\n", ip, port);
 
-    struct pollfd pollfds[2];
-    pollfds[0].fd = STDIN_FILENO;
-    pollfds[0].events = POLLIN | POLLPRI;
-    pollfds[1].fd = client_socket;
-    pollfds[1].events = POLLIN | POLLPRI;
+    handle_server(server_socket);
+
+    close(server_socket);
+    return 0;
+}
+void handle_server(int server_socket)
+{
+    char send_buffer[BUFFER_SIZE];
+    char recv_buffer[BUFFER_SIZE];
+    ssize_t bytes_received;
+    fd_set readfds;
+    int max_fd;
 
     while (1)
     {
-        int pollResult = poll(pollfds, 2, -1);
-        if (pollResult > 0)
+        FD_ZERO(&readfds);
+        FD_SET(STDIN_FILENO, &readfds);
+        FD_SET(server_socket, &readfds);
+        max_fd = server_socket + 1;
+
+        if (select(max_fd, &readfds, NULL, NULL, NULL) < 0)
         {
-            if (pollfds[0].revents & POLLIN)
+            perror("select");
+            break;
+        }
+
+        if (FD_ISSET(server_socket, &readfds))
+        {
+            memset(recv_buffer, 0, BUFFER_SIZE);
+            bytes_received = recv(server_socket, recv_buffer, BUFFER_SIZE - 1, 0);
+            if (bytes_received <= 0)
             {
-                char buf_stdin[SIZE];
-                ssize_t num_bytes_read = read(STDIN_FILENO, buf_stdin, SIZE - 1);
-                if (num_bytes_read > 0)
+                if (bytes_received == 0)
                 {
-                    buf_stdin[num_bytes_read] = '\0';
-                    ssize_t num_bytes_sent = write(client_socket, buf_stdin, strlen(buf_stdin));
-
-                    if (num_bytes_sent == -1)
-                    {
-                        perror("write");
-                    }
-
-                    if (strncmp(buf_stdin, "end", 3) == 0)
-                    {
-                        break;
-                    }
-                }
-            }
-
-            if (pollfds[1].revents & POLLIN)
-            {
-                char buf_socket[SIZE];
-                ssize_t num_bytes_received = read(client_socket, buf_socket, SIZE - 1);
-                if (num_bytes_received > 0)
-                {
-                    buf_socket[num_bytes_received] = '\0';
-                    printf("From server: %s\n", buf_socket);
-                }
-                else if (num_bytes_received == 0)
-                {
-                    printf("Server closed the connection\n");
-                    break;
+                    printf("Server disconnected.\n");
                 }
                 else
                 {
-                    perror("read");
-                    break;
+                    perror("recv");
                 }
+                break;
+            }
+
+            printf("Server: %s", recv_buffer);
+        }
+
+        if (FD_ISSET(STDIN_FILENO, &readfds))
+        {
+            printf("You: ");
+            fgets(send_buffer, BUFFER_SIZE, stdin);
+            if (send(server_socket, send_buffer, strlen(send_buffer), 0) < 0)
+            {
+                perror("send");
+                break;
             }
         }
     }
-
-    close(client_socket);
-
-    return 0;
 }

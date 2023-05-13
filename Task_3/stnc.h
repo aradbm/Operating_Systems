@@ -29,7 +29,9 @@
 #include <sys/shm.h> // shared memory
 #include <sys/ipc.h>
 #include <sys/sem.h>
+#include <stdlib.h>
 
+#define PORT "77777"
 #define PORTUDS1 "12347"
 #define SHAREDFILENAME "mysharedfile.txt"
 #define BUFFER_SIZE_PIPE 1024
@@ -39,14 +41,14 @@
 
 #define SIZESM 5000000
 
-void run_server_and_client(int x);
-void TCPclient(char *filename);
 void TCPserver(char *filename);
-void UDPclient(char *filename);
-void UDPserver(char *filename);
+void TCPclient(char *filename);
 void UDStcpServer(char *filename);
 void UDStcpClient(char *filename);
 void UDSdgramServer(char *filename);
 void UDSdgramClient(char *filename);
+void UDPserver(char *filename);
+void UDPclient(char *filename);
+void run_server_and_client(int);
 
-#endif // STNC
+#endif
