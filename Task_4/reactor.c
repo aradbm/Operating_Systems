@@ -34,7 +34,6 @@ void reactor_run(reactor_t *reactor)
         fd_set temp_set = reactor->read_fds;
         if (select(reactor->max_fd + 1, &temp_set, NULL, NULL, NULL) == -1)
         {
-            perror("select");
             exit(4);
         }
 

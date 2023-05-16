@@ -90,7 +90,6 @@ void accept_connection(int listener)
         reactor_add_handler(reactor, newfd, echo_response);
     }
 }
-
 void echo_response(int client_fd)
 {
     char buf[256];
@@ -108,6 +107,11 @@ void echo_response(int client_fd)
         }
 
         close(client_fd);
+    }
+    else
+    {
+        buf[nbytes] = '\0';                    // Null-terminate the string
+        printf("Received message: %s\n", buf); // Print the received message
     }
 }
 

@@ -69,28 +69,10 @@ int main()
     char buf[256];
     while (1)
     {
+        // client only send message
         printf("Enter a message: ");
         fgets(buf, sizeof buf, stdin);
         send(sockfd, buf, strlen(buf), 0);
-
-        int nbytes = recv(sockfd, buf, sizeof buf, 0);
-        if (nbytes <= 0)
-        {
-            if (nbytes == 0)
-            {
-                printf("client: server closed connection\n");
-            }
-            else
-            {
-                perror("recv");
-            }
-            close(sockfd);
-            break;
-        }
-
-        buf[nbytes] = '\0';
-        printf("Received message: %s", buf);
     }
-
     return 0;
 }
