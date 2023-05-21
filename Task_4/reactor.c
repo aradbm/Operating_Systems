@@ -50,4 +50,19 @@ void startReactor(reactor_t *reactor)
         }
     }
 }
+void WaitFor(void *this)
+{
+    // start reactor using pthread_join(3)
+    pthread_join(this, NULL);
 
+    // pthread_join(3) returns 0 on success
+    // if it returns anything else, exit with code 5
+    if (pthread_join(this, NULL) != 0)
+    {
+        exit(5);
+    }
+    // free memory
+    free(this);
+    // exit with code 0
+    exit(0);
+}

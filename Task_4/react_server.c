@@ -71,20 +71,10 @@ void setup_server()
         exit(3);
     }
 
+    // start reactor using WaitFd
     reactor = createReactor(); // Initialize the static reactor variable
     addFd(reactor, listener, accept_connection);
-
-    pthread_t reactor_thread;
-    if (pthread_create(&reactor_thread, NULL, start_reactor_wrapper, reactor))
-    {
-        fprintf(stderr, "Error creating reactor thread\n");
-        exit(1);
-    }
-    if (pthread_join(reactor_thread, NULL))
-    {
-        fprintf(stderr, "Error joining reactor thread\n");
-        exit(1);
-    }
+    pthread_t thread;
 
     stopReactor(reactor);
     reactor = NULL;
