@@ -11,14 +11,6 @@
 #include <netdb.h>
 #include "hashmap.h"
 #include <string.h>
-#include <pthread.h>
-
-void *start_reactor_wrapper(void *reactor)
-{
-    startReactor(reactor);
-    return NULL;
-}
-
 static reactor_t *reactor;
 
 void setup_server()
@@ -71,12 +63,10 @@ void setup_server()
         exit(3);
     }
 
-    // start reactor using WaitFd
-    reactor = createReactor(); // Initialize the static reactor variable
-    addFd(reactor, listener, accept_connection);
-    pthread_t thread;
-
-    stopReactor(reactor);
+    reactor = reactor_create(); // Initialize the static reactor variable
+    reactor_add_handler(reactor, listener, accept_connection);
+    reactor_run(reactor);
+    reactor_destroy(reactor);
     reactor = NULL;
 }
 
@@ -97,7 +87,7 @@ void accept_connection(int listener)
         printf("react_server: new connection from %s on socket %d\n",
                inet_ntop(remoteaddr.ss_family, &remoteaddr, remoteIP, INET6_ADDRSTRLEN),
                newfd);
-        addFd(reactor, newfd, echo_response);
+        reactor_add_handler(reactor, newfd, echo_response);
     }
 }
 void echo_response(int client_fd)
