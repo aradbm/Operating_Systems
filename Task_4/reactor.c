@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <sys/select.h>
 
-reactor_t *createReactor()
+reactor_t *reactor_create()
 {
     reactor_t *reactor = malloc(sizeof(reactor_t));
     FD_ZERO(&reactor->read_fds);
@@ -11,13 +11,13 @@ reactor_t *createReactor()
     return reactor;
 }
 
-void stopReactor(reactor_t *reactor)
+void reactor_destroy(reactor_t *reactor)
 {
     hashmap_destroy(reactor->handlers);
     free(reactor);
 }
 
-void addFd(reactor_t *reactor, int fd, handler_t handler)
+void reactor_add_handler(reactor_t *reactor, int fd, handler_t handler)
 {
     FD_SET(fd, &reactor->read_fds);
     if (fd > reactor->max_fd)
@@ -27,7 +27,7 @@ void addFd(reactor_t *reactor, int fd, handler_t handler)
     hashmap_add(reactor->handlers, fd, handler);
 }
 
-void startReactor(reactor_t *reactor)
+void reactor_run(reactor_t *reactor)
 {
     while (1)
     {
@@ -50,19 +50,21 @@ void startReactor(reactor_t *reactor)
         }
     }
 }
-void WaitFor(void *this)
-{
-    // start reactor using pthread_join(3)
-    pthread_join(this, NULL);
 
-    // pthread_join(3) returns 0 on success
-    // if it returns anything else, exit with code 5
-    if (pthread_join(this, NULL) != 0)
+void reactor_remove_handler(reactor_t *reactor, int fd)
+{
+    FD_CLR(fd, &reactor->read_fds);
+    hashmap_remove(reactor->handlers, fd);
+    if (fd == reactor->max_fd)
     {
-        exit(5);
+        // Recalculate the max_fd
+        reactor->max_fd = -1;
+        for (int i = 0; i <= FD_SETSIZE; i++)
+        {
+            if (FD_ISSET(i, &reactor->read_fds))
+            {
+                reactor->max_fd = i;
+            }
+        }
     }
-    // free memory
-    free(this);
-    // exit with code 0
-    exit(0);
 }

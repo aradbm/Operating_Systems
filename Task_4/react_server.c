@@ -11,14 +11,6 @@
 #include <netdb.h>
 #include "hashmap.h"
 #include <string.h>
-#include <pthread.h>
-
-void *start_reactor_wrapper(void *reactor)
-{
-    startReactor(reactor);
-    return NULL;
-}
-
 static reactor_t *reactor;
 
 void setup_server()
@@ -71,12 +63,10 @@ void setup_server()
         exit(3);
     }
 
-    // start reactor using WaitFd
-    reactor = createReactor(); // Initialize the static reactor variable
-    addFd(reactor, listener, accept_connection);
-    pthread_t thread;
-
-    stopReactor(reactor);
+    reactor = reactor_create(); // Initialize the static reactor variable
+    reactor_add_handler(reactor, listener, accept_connection);
+    reactor_run(reactor);
+    reactor_destroy(reactor);
     reactor = NULL;
 }
 
@@ -94,10 +84,11 @@ void accept_connection(int listener)
     }
     else
     {
+        struct sockaddr_in *s = (struct sockaddr_in *)&remoteaddr;
         printf("react_server: new connection from %s on socket %d\n",
-               inet_ntop(remoteaddr.ss_family, &remoteaddr, remoteIP, INET6_ADDRSTRLEN),
+               inet_ntop(remoteaddr.ss_family, &(s->sin_addr), remoteIP, INET6_ADDRSTRLEN),
                newfd);
-        addFd(reactor, newfd, echo_response);
+        reactor_add_handler(reactor, newfd, echo_response);
     }
 }
 void echo_response(int client_fd)
@@ -105,7 +96,14 @@ void echo_response(int client_fd)
     char buf[256];
     int nbytes;
 
-    if ((nbytes = recv(client_fd, buf, sizeof buf, 0)) <= 0)
+    nbytes = recv(client_fd, buf, sizeof buf - 1, 0);
+    if (nbytes > 0)
+    {
+        buf[nbytes] = '\0';                    // Null-terminate the string
+        printf("Received message: %s\n", buf); // Print the received message
+        fflush(stdout);
+    }
+    else
     {
         if (nbytes == 0)
         {
@@ -115,13 +113,8 @@ void echo_response(int client_fd)
         {
             perror("recv");
         }
-
+        reactor_remove_handler(reactor, client_fd);
         close(client_fd);
-    }
-    else
-    {
-        buf[nbytes] = '\0';                    // Null-terminate the string
-        printf("Received message: %s\n", buf); // Print the received message
     }
 }
 

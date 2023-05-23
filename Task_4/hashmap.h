@@ -15,6 +15,7 @@ typedef struct
 {
     fd_handler_pair_t *pairs;
     size_t num_pairs;
+    pthread_mutex_t mutex;
 } hashmap_t;
 
 hashmap_t *hashmap_create();
