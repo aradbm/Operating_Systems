@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <sys/select.h>
 
-reactor_t *reactor_create()
+reactor_t *createReactor()
 {
     reactor_t *reactor = malloc(sizeof(reactor_t));
     FD_ZERO(&reactor->read_fds);
@@ -11,13 +11,13 @@ reactor_t *reactor_create()
     return reactor;
 }
 
-void reactor_destroy(reactor_t *reactor)
+void stopReactor(reactor_t *reactor)
 {
     hashmap_destroy(reactor->handlers);
     free(reactor);
 }
 
-void reactor_add_handler(reactor_t *reactor, int fd, handler_t handler)
+void addFd(reactor_t *reactor, int fd, handler_t handler)
 {
     FD_SET(fd, &reactor->read_fds);
     if (fd > reactor->max_fd)
@@ -27,7 +27,7 @@ void reactor_add_handler(reactor_t *reactor, int fd, handler_t handler)
     hashmap_add(reactor->handlers, fd, handler);
 }
 
-void reactor_run(reactor_t *reactor)
+void startReactor(reactor_t *reactor)
 {
     while (1)
     {

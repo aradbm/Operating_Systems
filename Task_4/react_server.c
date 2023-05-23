@@ -63,10 +63,10 @@ void setup_server()
         exit(3);
     }
 
-    reactor = reactor_create(); // Initialize the static reactor variable
-    reactor_add_handler(reactor, listener, accept_connection);
-    reactor_run(reactor);
-    reactor_destroy(reactor);
+    reactor = createReactor(); // Initialize the static reactor variable
+    addFd(reactor, listener, accept_connection);
+    startReactor(reactor);
+    stopReactor(reactor);
     reactor = NULL;
 }
 
@@ -88,7 +88,7 @@ void accept_connection(int listener)
         printf("react_server: new connection from %s on socket %d\n",
                inet_ntop(remoteaddr.ss_family, &(s->sin_addr), remoteIP, INET6_ADDRSTRLEN),
                newfd);
-        reactor_add_handler(reactor, newfd, echo_response);
+        addFd(reactor, newfd, echo_response);
     }
 }
 void echo_response(int client_fd)
