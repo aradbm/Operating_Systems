@@ -63,9 +63,10 @@ Received message: How are you?
 
 react_server: new connection from 127.0.0.1 on socket 6
 Received message: Greetings from another client!
+```
 
 Client terminal(s):
-
+```bash
 $ telnet localhost 9034
 Trying 127.0.0.1...
 Connected to localhost.
@@ -78,3 +79,4 @@ Trying 127.0.0.1...
 Connected to localhost.
 Escape character is '^]'.
 Greetings from another client!
+```
